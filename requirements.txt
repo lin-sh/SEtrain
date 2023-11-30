@@ -8,6 +8,5 @@ ptflops==0.7
 pystoi==0.3.3
 soundfile==0.12.1
 toml==0.10.2
-torch==1.11.0
 torch_stoi==0.1.2
 tqdm==4.66.1

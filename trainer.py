@@ -15,10 +15,10 @@ from distributed_utils import reduce_value
 
 class Trainer:
     def __init__(self, config, model, optimizer, loss_func,
-                 train_dataloader, validation_dataloader, train_sampler, args):
+                 train_dataloader, validation_dataloader, train_sampler, args, loss_type):
         self.config = config
         self.model = model
-
+        self.loss_type = loss_type
         self.optimizer = optimizer
         
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -106,13 +106,16 @@ class Trainer:
         total_loss = 0
         self.train_dataloader = tqdm(self.train_dataloader, ncols=110)
 
-        for step, (mixture, target) in enumerate(self.train_dataloader, 1):
+        for step, (mixture, ref, target) in enumerate(self.train_dataloader, 1):
             mixture = mixture.to(self.device)
+            ref = ref.to(self.device)
             target = target.to(self.device)  
 
-            esti_tagt = self.model(mixture)
-
-            loss = self.loss_func(esti_tagt, target)
+            esti_tagt = self.model(mixture, ref)
+            if self.loss_type == 'hybrid_CR':
+                loss = self.loss_func(esti_tagt, target, mixture)
+            else:
+                loss = self.loss_func(esti_tagt, target)
             loss = reduce_value(loss)
             total_loss += loss.item()
 
@@ -140,18 +143,19 @@ class Trainer:
         total_pesq_score = 0
 
         self.validation_dataloader = tqdm(self.validation_dataloader, ncols=132)
-        for step, (mixture, target) in enumerate(self.validation_dataloader, 1):
+        for step, (mixture, ref, target) in enumerate(self.validation_dataloader, 1):
             mixture = mixture.to(self.device)
+            ref = ref.to(self.device)
             target = target.to(self.device)  
             
-            esti_tagt = self.model(mixture)
+            esti_tagt = self.model(mixture, ref)
 
             loss = self.loss_func(esti_tagt, target)
             loss = reduce_value(loss)
             total_loss += loss.item()
 
-            enhanced = torch.istft(esti_tagt[..., 0] + 1j*esti_tagt[..., 1], **self.config['FFT'], torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
-            clean = torch.istft(target[..., 0] + 1j*target[..., 1], **self.config['FFT'], torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
+            enhanced = torch.istft(esti_tagt[..., 0] + 1j*esti_tagt[..., 1], **self.config['FFT'], window = torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
+            clean = torch.istft(target[..., 0] + 1j*target[..., 1], **self.config['FFT'], window = torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
 
             enhanced = enhanced.squeeze().cpu().numpy()
             clean = clean.squeeze().cpu().numpy()
@@ -160,7 +164,7 @@ class Trainer:
             pesq_score = reduce_value(torch.tensor(pesq_score, device=self.device))
             total_pesq_score += pesq_score
             
-            if self.args==0 and step <= 3:
+            if step <= 3:
                 sf.write(os.path.join(self.sample_path,
                                     '{}_enhanced_epoch{}_pesq={:.3f}.wav'.format(step, epoch, pesq_score)),
                                     enhanced, 16000)

@@ -2,8 +2,8 @@ import toml
 import torch
 import torch.nn as nn
 from torch_stoi import NegSTOILoss
-
-
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 config = toml.load('config.toml')
 
 
@@ -124,18 +124,69 @@ class loss_hybrid(nn.Module):
         
         return 30*(real_loss + imag_loss) + 70*mag_loss + sisnr
 
+class loss_hybrid_CR(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.window = torch.hann_window(config['FFT']['win_length']).pow(0.5)
 
+    def forward(self, pred_stft, true_stft, false_stft):
+        """ inputs: spectrograms, (B,F,T,2) """
+        device = pred_stft.device
+
+        pred_stft_real, pred_stft_imag = pred_stft[:,:,:,0], pred_stft[:,:,:,1]
+        true_stft_real, true_stft_imag = true_stft[:,:,:,0], true_stft[:,:,:,1]
+        pred_mag = torch.sqrt(pred_stft_real**2 + pred_stft_imag**2 + 1e-12)
+        true_mag = torch.sqrt(true_stft_real**2 + true_stft_imag**2 + 1e-12)
+        pred_real_c = pred_stft_real / (pred_mag**(0.7))
+        pred_imag_c = pred_stft_imag / (pred_mag**(0.7))
+        true_real_c = true_stft_real / (true_mag**(0.7))
+        true_imag_c = true_stft_imag / (true_mag**(0.7))
+        real_loss = torch.mean((pred_real_c - true_real_c)**2)
+        imag_loss = torch.mean((pred_imag_c - true_imag_c)**2)
+        mag_loss = torch.mean((pred_mag**(0.3)-true_mag**(0.3))**2)
+        
+
+        y_pred = torch.istft(pred_stft_real+1j*pred_stft_imag, **config['FFT'], window=self.window.to(device))
+        y_true = torch.istft(true_stft_real+1j*true_stft_imag, **config['FFT'], window=self.window.to(device))
+        y_true = torch.sum(y_true * y_pred, dim=-1, keepdim=True) * y_true / (torch.sum(torch.square(y_true),dim=-1,keepdim=True) + 1e-8)
+        sisnr =  - torch.log10(torch.sum(torch.square(y_true),dim=-1,keepdim=True) / torch.sum(torch.square(y_pred - y_true),dim=-1,keepdim=True) + 1e-8).mean()
+        
+        loss1 = 30*(real_loss + imag_loss) + 70*mag_loss + sisnr
+
+        #######################################################
+        # 对比学习
+        pred_stft_real, pred_stft_imag = pred_stft[:,:,:,0], pred_stft[:,:,:,1]
+        false_stft_real, false_stft_imag = false_stft[:,:,:,0], false_stft[:,:,:,1]
+        pred_mag = torch.sqrt(pred_stft_real**2 + pred_stft_imag**2 + 1e-12)
+        false_mag = torch.sqrt(false_stft_real**2 + false_stft_imag**2 + 1e-12)
+        pred_real_c = pred_stft_real / (pred_mag**(0.7))
+        pred_imag_c = pred_stft_imag / (pred_mag**(0.7))
+        false_real_c = false_stft_real / (false_mag**(0.7))
+        false_imag_c = false_stft_imag / (false_mag**(0.7))
+        real_loss = torch.mean((pred_real_c - false_real_c)**2)
+        imag_loss = torch.mean((pred_imag_c - false_imag_c)**2)
+        mag_loss = torch.mean((pred_mag**(0.3)-false_mag**(0.3))**2)
+        
+
+        y_pred = torch.istft(pred_stft_real+1j*pred_stft_imag, **config['FFT'], window=self.window.to(device))
+        y_false = torch.istft(false_stft_real+1j*false_stft_imag, **config['FFT'], window=self.window.to(device))
+        y_false = torch.sum(y_false * y_pred, dim=-1, keepdim=True) * y_false / (torch.sum(torch.square(y_false),dim=-1,keepdim=True) + 1e-8)
+        sisnr =  - torch.log10(torch.sum(torch.square(y_false),dim=-1,keepdim=True) / torch.sum(torch.square(y_pred - y_false),dim=-1,keepdim=True) + 1e-8).mean()
+
+        loss2 = 30*(real_loss + imag_loss) + 70*mag_loss + sisnr
+        return loss1 / (loss2 + 1e-8)
 
 
 if __name__=='__main__':
-    a = torch.randn(2,10000)
-    b = torch.randn(2, 9990)
-    loss_func = loss_sisnr()
-    loss = loss_func(a,b)
-    print(loss)
+    # a = torch.randn(2,10000)
+    # b = torch.randn(2, 9990)
+    # loss_func = loss_sisnr()
+    # loss = loss_func(a,b)
+    # print(loss)
     
-    S_ = torch.randn(3, 257, 91, 2)
-    S = torch.randn(3, 257, 91, 2)
-    loss_func = loss_hybrid()
-    loss = loss_func(S_, S)
+    S1 = torch.randn(3, 257, 91, 2)
+    S2 = torch.randn(3, 257, 91, 2)
+    S3 = torch.randn(3, 257, 91, 2)
+    loss_func = loss_hybrid_CR()
+    loss = loss_func(S1, S2, S3)
     print(loss)

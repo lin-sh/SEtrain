@@ -99,11 +99,12 @@ class Trainer:
         total_loss = 0
         self.train_dataloader = tqdm(self.train_dataloader, ncols=120)
 
-        for step, (mixture, target) in enumerate(self.train_dataloader, 1):
+        for step, (mixture, ref, target) in enumerate(self.train_dataloader, 1):
             mixture = mixture.to(self.device)
+            ref = ref.to(self.device)
             target = target.to(self.device)  
 
-            esti_tagt = self.model(mixture)
+            esti_tagt = self.model(mixture, ref)
 
             loss = self.loss_func(esti_tagt, target)
             total_loss += loss.item()
@@ -128,17 +129,18 @@ class Trainer:
         total_pesq_score = 0
 
         self.validation_dataloader = tqdm(self.validation_dataloader, ncols=132)
-        for step, (mixture, target) in enumerate(self.validation_dataloader, 1):
+        for step, (mixture, ref, target) in enumerate(self.validation_dataloader, 1):
             mixture = mixture.to(self.device)
+            ref = ref.to(self.device)
             target = target.to(self.device)  
             
-            esti_tagt = self.model(mixture)
+            esti_tagt = self.model(mixture, ref)
 
             loss = self.loss_func(esti_tagt, target)
             total_loss += loss.item()
 
-            enhanced = torch.istft(esti_tagt[..., 0] + 1j*esti_tagt[..., 1], **self.config['FFT'], torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
-            clean = torch.istft(target[..., 0] + 1j*target[..., 1], **self.config['FFT'], torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
+            enhanced = torch.istft(esti_tagt[..., 0] + 1j*esti_tagt[..., 1], **self.config['FFT'], window = torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
+            clean = torch.istft(target[..., 0] + 1j*target[..., 1], **self.config['FFT'], window = torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
 
             enhanced = enhanced.squeeze().cpu().numpy()
             clean = clean.squeeze().cpu().numpy()

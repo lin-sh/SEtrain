@@ -2,11 +2,12 @@
 single GPU version.
 """
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 import toml
 import torch
 
 from trainer_sg import Trainer
+from deepvqe_v1 import DeepVQE
 from model import DPCRN
 from datasets import MyDataset
 from loss_factory import loss_wavmag, loss_mse, loss_hybrid
@@ -24,7 +25,8 @@ def run(config, device):
     validation_dataset = MyDataset(**config['validation_dataset'])
     validation_dataloader = torch.utils.data.DataLoader(dataset=validation_dataset, **config['validation_dataloader'])
 
-    model = DPCRN(**config['network_config'])
+    # model = DPCRN(**config['network_config'])
+    model = DeepVQE()
     model.to(device)
 
 

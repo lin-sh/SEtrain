@@ -19,19 +19,19 @@ hop_length = 256
 win_length = 512
 
 [train_dataset]
-train_folder = '/data/ssd0/xiaobin.rong/Datasets/DNS3/train'
+train_folder = '/root/aec/AEC-Challenge2022/datasets/synthetic/train_set.csv'
 shuffle = false
 num_tot = 0
 wav_len = 0
 
 [train_dataloader]
-batch_size = 16
+batch_size = 1
 num_workers = 4
 drop_last = true
 pin_memory = true
 
 [validation_dataset]
-train_folder = '/data/ssd0/xiaobin.rong/Datasets/DNS3/dev'
+train_folder = '/root/aec/AEC-Challenge2022/datasets/synthetic/val_set.csv'
 shuffle = false
 num_tot = 0
 wav_len = 0
@@ -45,7 +45,7 @@ pin_memory = true
 epochs = 120
 save_checkpoint_interval = 1
 clip_grad_norm_value = 3.0
-exp_path = '/data/ssd0/xiaobin.rong/project_se/DNS3/exp_dpcrn'
+exp_path = '/root/aec/SEtrain/exp/exp'
 resume = false
 resume_datetime = ''
 resume_step = 0
