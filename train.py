@@ -2,16 +2,16 @@
 multiple GPUs version, using DDP training.
 """
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="0, 1"
+os.environ["CUDA_VISIBLE_DEVICES"]="2,3"
 import toml
 import torch
 import argparse
 import torch.distributed as dist
 
 from trainer import Trainer
-from model import DPCRN
+from deepvqe_v1 import DeepVQE
 from datasets import MyDataset
-from loss_factory import loss_wavmag, loss_mse, loss_hybrid
+from loss_factory import loss_wavmag, loss_mse, loss_hybrid, loss_hybrid_CR
 
 seed = 0
 torch.manual_seed(seed)
@@ -38,7 +38,8 @@ def run(rank, config, args):
     validation_dataloader = torch.utils.data.DataLoader(dataset=validation_dataset, sampler=validation_sampler,
                                                         **config['validation_dataloader'])
 
-    model = DPCRN(**config['network_config'])
+    # model = DPCRN(**config['network_config'])
+    model = DeepVQE()
     model.to(args.device)
 
     # convert to DDP model
@@ -52,12 +53,14 @@ def run(rank, config, args):
         loss = loss_mse()
     elif config['loss']['loss_func'] == 'hybrid':
         loss = loss_hybrid()
+    elif config['loss']['loss_func'] == 'hybrid_CR':
+        loss = loss_hybrid_CR()    
     else:
         raise(NotImplementedError)
 
     trainer = Trainer(config=config, model=model,optimizer=optimizer, loss_func=loss,
                       train_dataloader=train_dataloader, validation_dataloader=validation_dataloader, 
-                      train_sampler=train_sampler, args=args)
+                      train_sampler=train_sampler, args=args, loss_type = config['loss']['loss_func'])
 
     trainer.train()
 
