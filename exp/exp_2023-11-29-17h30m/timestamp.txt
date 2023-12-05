@@ -1,1 +1,6 @@
 [2023-11-29-17:30] start for 120 epochs
+[2023-12-01-15:58] start for 120 epochs
+[2023-12-01-17:31] start for 120 epochs
+[2023-12-01-17:33] start for 120 epochs
+[2023-12-01-17:34] start for 120 epochs
+[2023-12-04-01:43] end

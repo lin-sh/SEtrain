@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="1" 
+os.environ["CUDA_VISIBLE_DEVICES"]="" 
 
 import toml
 import torch
@@ -11,18 +11,19 @@ from pystoi import stoi
 from score_utils import sisnr
 from omegaconf import OmegaConf
 from datasets import MyDataset
-from model import DPCRN
+from deepvqe_v1 import DeepVQE
 
 
 @torch.no_grad()
 def infer(cfg_yaml):
 
-    save_wavs = input('>>> Save wavs? (y/n) ')
+    # save_wavs = input('>>> Save wavs? (y/n) ')
+    save_wavs = 'n'
     if save_wavs == 'y':
         mark = input('>>> Please enter a tag for the saved wav names: ')
 
     cfg_toml = toml.load(cfg_yaml.network.cfg_toml)
-    cfg_toml['validation_dataset']['train_folder'] = '/data/ssd0/xiaobin.rong/Datasets/DNS3/test/'
+    cfg_toml['validation_dataset']['train_folder'] = '/root/aec/AEC-Challenge2022/datasets/synthetic/test_set.csv'
     cfg_toml['validation_dataset']['num_tot'] = 0         # all utterances
     cfg_toml['validation_dataset']['wav_len'] = 0         # full wav length
     cfg_toml['validation_dataloader']['batch_size'] = 1   # one utterence once
@@ -39,7 +40,7 @@ def infer(cfg_yaml):
     validation_dataloader = torch.utils.data.DataLoader(validation_dataset, **cfg_toml['validation_dataloader'])
 
     ### load model
-    model = DPCRN(**cfg_toml['network_config'])
+    model = DeepVQE()
     model.to(device)
     checkpoint = torch.load(cfg_yaml.network.checkpoint, map_location=device)
     model.load_state_dict(checkpoint['model'])
@@ -50,13 +51,14 @@ def infer(cfg_yaml):
 
     ### compute SISNR, PESQ, and ESTOI
     INFO1 = []
-    INFO = pd.read_csv(os.path.join(cfg_toml['validation_dataset']['train_folder'], 'INFO.csv'))
-    for step, (mixture, target) in enumerate(tqdm(validation_dataloader)):
+    # INFO = pd.read_csv(os.path.join(cfg_yaml.path.csv_folder, 'INFO.csv'))
+    for step, (mixture, ref, target) in enumerate(tqdm(validation_dataloader)):
             
         mixture = mixture.to(device)
-        target = target.to(device)
+        ref = ref.to(device)
+        target = target.to(device)  
         
-        estimate= model(mixture)                       # [B, F, T, 2]
+        estimate = model(mixture, ref)                    # [B, F, T, 2]
 
         enhanced = torch.istft(estimate[..., 0] + 1j*estimate[..., 1], **cfg_toml['FFT'], window=torch.hann_window(cfg_toml['FFT']['win_length']).pow(0.5).to(device))
         clean = torch.istft(target[..., 0] + 1j*target[..., 1], **cfg_toml['FFT'], window=torch.hann_window(cfg_toml['FFT']['win_length']).pow(0.5).to(device))
@@ -73,23 +75,22 @@ def infer(cfg_yaml):
 
         ## save wavs
         if save_wavs == 'y':
-            save_name = "{}_{}_{:.2f}_{:.2f}_{:.2f}.wav".format(validation_filename[step], mark, sisnr_score, pesq_score, estoi_score)
+            save_name = "{}_{}_{:.2f}_{:.2f}_{:.2f}.wav".format(validation_filename[0][step], mark, sisnr_score, pesq_score, estoi_score)
         
             sf.write(
                 os.path.join(netout_folder, save_name), out, cfg_toml['listener']['listener_sr'])
         
         ## save infos
-        file_name = validation_filename[step]
+        file_name = validation_filename[0][step]
         INFO1.append([file_name, sisnr_score, pesq_score,  estoi_score])
     
     INFO1 = pd.DataFrame(INFO1, columns=['file_name', 'sisnr', 'pesq', 'estoi'])
-    INFO2 = pd.merge(INFO, INFO1)
-    INFO2.to_csv(os.path.join(netout_folder, 'INFO2.csv'), index=None)
+    INFO1.to_csv(os.path.join(cfg_yaml.path.csv_folder, 'INFO.csv'), index=None)
 
-    ### compute DNSMOS
-    os.chdir('DNSMOS')
-    out_dir = os.path.join(netout_folder, 'dnsmos_enhanced_p808.csv')
-    os.system(f'python dnsmos_local_p808.py -t {netout_folder} -o {out_dir}')
+    # ### compute DNSMOS
+    # os.chdir('DNSMOS')
+    # out_dir = os.path.join(netout_folder, 'dnsmos_enhanced_p808.csv')
+    # os.system(f'python dnsmos_local_p808.py -t {netout_folder} -o {out_dir}')
     
     
 if __name__ == "__main__":

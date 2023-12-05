@@ -14,9 +14,10 @@ from pesq import pesq
 
 class Trainer:
     def __init__(self, config, model, optimizer, loss_func,
-                 train_dataloader, validation_dataloader, device):
+                 train_dataloader, validation_dataloader, device, loss_type):
         self.config = config
         self.model = model
+        self.loss_type = loss_type
         self.optimizer = optimizer
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             self.optimizer, 'min', factor=0.5, patience=5,verbose=True)
@@ -136,7 +137,10 @@ class Trainer:
             
             esti_tagt = self.model(mixture, ref)
 
-            loss = self.loss_func(esti_tagt, target)
+            if self.loss_type == 'hybrid_CR':
+                loss = self.loss_func(esti_tagt, target, mixture)
+            else:
+                loss = self.loss_func(esti_tagt, target)
             total_loss += loss.item()
 
             enhanced = torch.istft(esti_tagt[..., 0] + 1j*esti_tagt[..., 1], **self.config['FFT'], window = torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))

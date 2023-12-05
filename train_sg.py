@@ -2,15 +2,27 @@
 single GPU version.
 """
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import toml
 import torch
+# 检查是否有可用的 GPU
+if torch.cuda.is_available():
+    # 获取 GPU 数量
+    num_gpus = torch.cuda.device_count()
 
+    print(f"Number of available GPUs: {num_gpus}")
+
+    # 打印每个 GPU 的名称
+    for i in range(num_gpus):
+        print(f"GPU {i}: {torch.cuda.get_device_name(i)}")
+else:
+    print("No GPU available.")
 from trainer_sg import Trainer
 from deepvqe_v1 import DeepVQE
-from model import DPCRN
 from datasets import MyDataset
-from loss_factory import loss_wavmag, loss_mse, loss_hybrid
+from loss_factory import loss_wavmag, loss_mse, loss_hybrid, loss_hybrid_CR 
+
+
 
 seed = 0
 torch.manual_seed(seed)
@@ -38,12 +50,14 @@ def run(config, device):
         loss = loss_mse()
     elif config['loss']['loss_func'] == 'hybrid':
         loss = loss_hybrid()
+    elif config['loss']['loss_func'] == 'hybrid_CR':
+        loss = loss_hybrid_CR()    
     else:
         raise(NotImplementedError)
 
     trainer = Trainer(config=config, model=model,optimizer=optimizer, loss_func=loss,
                       train_dataloader=train_dataloader, validation_dataloader=validation_dataloader, 
-                      device=device)
+                      device=device, loss_type = config['loss']['loss_func'])
 
     trainer.train()
 

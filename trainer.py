@@ -150,7 +150,10 @@ class Trainer:
             
             esti_tagt = self.model(mixture, ref)
 
-            loss = self.loss_func(esti_tagt, target)
+            if self.loss_type == 'hybrid_CR':
+                loss = self.loss_func(esti_tagt, target, mixture)
+            else:
+                loss = self.loss_func(esti_tagt, target)
             loss = reduce_value(loss)
             total_loss += loss.item()
 

@@ -24,7 +24,7 @@ num_tot = 0
 wav_len = 0
 
 [train_dataloader]
-batch_size = 1
+batch_size = 2
 num_workers = 4
 drop_last = true
 pin_memory = true
@@ -37,7 +37,7 @@ wav_len = 0
 
 [validation_dataloader]
 batch_size = 1
-num_workers = 4
+num_workers = 0
 pin_memory = true
 
 [trainer]
@@ -45,6 +45,6 @@ epochs = 120
 save_checkpoint_interval = 1
 clip_grad_norm_value = 3.0
 exp_path = "/root/aec/SEtrain/exp/exp"
-resume = false
-resume_datetime = ""
-resume_step = 0
+resume = true
+resume_datetime = "2023-11-29-17h30m"
+resume_step = 26
