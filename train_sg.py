@@ -22,8 +22,6 @@ from deepvqe_v1 import DeepVQE
 from datasets import MyDataset
 from loss_factory import loss_wavmag, loss_mse, loss_hybrid, loss_hybrid_CR 
 
-
-
 seed = 0
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
@@ -62,7 +60,7 @@ def run(config, device):
     trainer.train()
 
 if __name__ == '__main__':
-    device = torch.device("cuda")
+    device = "cpu"#torch.device("cuda")
     config = toml.load('config.toml')
     run(config, device)
 

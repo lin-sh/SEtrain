@@ -49,6 +49,7 @@ class Trainer:
 
         self.log_path = os.path.join(self.exp_path, 'logs')
         self.checkpoint_path = os.path.join(self.exp_path, 'checkpoints')
+        self.best_path = os.path.join(self.exp_path, 'best')
         self.sample_path = os.path.join(self.exp_path, 'val_samples')
         self.early_stopping_path = os.path.join(self.exp_path, 'early_stopping')
         self.early_stopping = EarlyStopping(self.early_stopping_path)
@@ -70,6 +71,9 @@ class Trainer:
 
         self.start_epoch = 1
         self.best_score = 0
+        self.best_epoch = 0
+
+
 
         if self.resume:
             self._resume_checkpoint()
@@ -93,12 +97,14 @@ class Trainer:
         torch.save(state_dict, os.path.join(self.checkpoint_path, f'model_{str(epoch).zfill(4)}.tar'))
         if not self.early_stopping.early_stop:
             self.early_stopping(score, self.model, epoch)
+        
         if score > self.best_score:
-            self.state_dict_best = state_dict.copy()
             self.best_score = score
+            self.state_dict_best = state_dict.copy()
             torch.save(self.state_dict_best,
                     os.path.join(self.checkpoint_path,
                     'best_model.tar'))   
+
 
     def _resume_checkpoint(self):
         latest_checkpoints = sorted(glob(os.path.join(self.checkpoint_path, 'model_*.tar')))[-1]
@@ -157,7 +163,6 @@ class Trainer:
             target = target.to(self.device)  
             
             esti_tagt = self.model(mixture, ref)
-
             if self.loss_type == 'hybrid_CR':
                 loss = self.loss_func(esti_tagt, target, mixture)
             else:

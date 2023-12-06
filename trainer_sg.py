@@ -117,8 +117,10 @@ class Trainer:
             target = target.to(self.device)  
 
             esti_tagt = self.model(mixture, ref)
-
-            loss = self.loss_func(esti_tagt, target)
+            if self.loss_type == 'hybrid_CR':
+                loss = self.loss_func(esti_tagt, target, mixture)
+            else:
+                loss = self.loss_func(esti_tagt, target)
             total_loss += loss.item()
 
             self.train_dataloader.desc = '   train[{}/{}][{}]'.format(
@@ -147,7 +149,6 @@ class Trainer:
             target = target.to(self.device)  
             
             esti_tagt = self.model(mixture, ref)
-
             if self.loss_type == 'hybrid_CR':
                 loss = self.loss_func(esti_tagt, target, mixture)
             else:

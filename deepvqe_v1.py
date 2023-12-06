@@ -204,13 +204,14 @@ if __name__ == "__main__":
     model = DeepVQE().eval()
     x = torch.randn(1, 257, 63, 2)
     x1 = torch.randn(1, 257, 63, 2)
-    y = model(x, x1)
+    y = model(x, x1).cuda()
+    
 
     
-    from ptflops import get_model_complexity_info
-    flops, params = get_model_complexity_info(model, (257, 63, 2), as_strings=True,
-                                           print_per_layer_stat=True, verbose=True)
-    print(flops, params)
+    # from ptflops import get_model_complexity_info
+    # flops, params = get_model_complexity_info(model, (257, 63, 2), as_strings=True,
+    #                                        print_per_layer_stat=True, verbose=True)
+    # print(flops, params)
 
     """causality check"""
     a = torch.randn(1, 257, 100, 2)

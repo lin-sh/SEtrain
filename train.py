@@ -2,9 +2,14 @@
 multiple GPUs version, using DDP training.
 """
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="2,3"
-import toml
+os.environ["CUDA_VISIBLE_DEVICES"]="1,2,3,4,5"
 import torch
+# 检查是否有可用的 GPU
+if torch.cuda.is_available():
+    # 获取 GPU 数量
+    num_gpus = torch.cuda.device_count()
+    print(f"Number of available GPUs: {num_gpus}")
+import toml
 import argparse
 import torch.distributed as dist
 
@@ -32,8 +37,8 @@ torch.cuda.manual_seed_all(seed)
 
 
 def run(rank, config, args):
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12354'
+    os.environ['MASTER_ADDR'] = '127.0.0.1'
+    os.environ['MASTER_PORT'] = '12359'
     dist.init_process_group("nccl", rank=rank, world_size=args.world_size)
     torch.cuda.set_device(rank)
     dist.barrier()
@@ -58,8 +63,7 @@ def run(rank, config, args):
     # convert to DDP model
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[rank])
     optimizer = torch.optim.Adam(params=model.parameters(), lr=config['optimizer']['lr'])
-                        
-
+    
     if config['loss']['loss_func'] == 'wav_mag':
         loss = loss_wavmag()  
     elif config['loss']['loss_func'] == 'mse':

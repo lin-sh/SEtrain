@@ -1,14 +1,14 @@
 [network_config]
-# 原版deepvqe
+# 对比学习损失函数
 
 [DDP]
-world_size = 2   # number of available gpus
+world_size = 5   # number of available gpus
 
 [optimizer]
 lr = 1e-3
 
 [loss]
-loss_func = 'hybrid'
+loss_func = 'hybrid_CR'
 
 [listener]
 listener_sr = 16000
@@ -19,19 +19,19 @@ hop_length = 256
 win_length = 512
 
 [train_dataset]
-train_folder = '/root/aec/AEC-Challenge2022/datasets/synthetic/train_set.csv'
+train_folder = '/home/aec/AEC-Challenge/datasets/synthetic/train_set.csv'
 shuffle = false
 num_tot = 0
 wav_len = 0
 
 [train_dataloader]
-batch_size = 2
-num_workers = 4
+batch_size = 1
+num_workers = 0
 drop_last = true
 pin_memory = true
 
 [validation_dataset]
-train_folder = '/root/aec/AEC-Challenge2022/datasets/synthetic/val_set.csv'
+train_folder = '/home/aec/AEC-Challenge/datasets/synthetic/val_set.csv'
 shuffle = false
 num_tot = 0
 wav_len = 0
@@ -45,7 +45,7 @@ pin_memory = true
 epochs = 120
 save_checkpoint_interval = 1
 clip_grad_norm_value = 3.0
-exp_path = '/root/aec/SEtrain/exp/exp'
+exp_path = '/home/aec/SEtrain/exp/exp'
 resume = true
-resume_datetime = '2023-11-29-17h30m'
-resume_step = 26
+resume_datetime = '2023-12-01-10h58m'
+resume_step = 57
