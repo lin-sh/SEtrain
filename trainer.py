@@ -12,7 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 from pesq import pesq
 from distributed_utils import reduce_value
 from early_stopping import EarlyStopping
-
+from send import send_email
 
 class Trainer:
     def __init__(self, config, model, optimizer, loss_func,
@@ -235,5 +235,5 @@ class Trainer:
 
             with open(timestamp_txt, 'a') as f:
                 f.write('[{}] end\n'.format(datetime.now().strftime("%Y-%m-%d-%H:%M")))
-
+            send_email("node02_linshanghui_Gw4eub", "您的模型已经成功训练完成！")
         
