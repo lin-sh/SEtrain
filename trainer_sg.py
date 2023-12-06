@@ -92,6 +92,9 @@ class Trainer:
         if score > self.best_score:
             self.state_dict_best = state_dict.copy()
             self.best_score = score
+            torch.save(self.state_dict_best,
+                os.path.join(self.checkpoint_path,
+                'best_model_{}.tar'.format(str(self.state_dict_best['epoch']).zfill(4))))  
 
     def _resume_checkpoint(self):
         latest_checkpoints = sorted(glob(os.path.join(self.checkpoint_path, 'model_*.tar')))[-1]
