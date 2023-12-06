@@ -18,9 +18,10 @@ from deepvqe_v1 import DeepVQE
 def infer(cfg_yaml):
 
     # save_wavs = input('>>> Save wavs? (y/n) ')
-    save_wavs = 'n'
+    save_wavs = 'y'
     if save_wavs == 'y':
-        mark = input('>>> Please enter a tag for the saved wav names: ')
+        # mark = input('>>> Please enter a tag for the saved wav names: ')
+        mark = 'enhance'
 
     cfg_toml = toml.load(cfg_yaml.network.cfg_toml)
     cfg_toml['validation_dataset']['train_folder'] = '/root/aec/AEC-Challenge2022/datasets/synthetic/test_set.csv'
@@ -51,6 +52,9 @@ def infer(cfg_yaml):
 
     ### compute SISNR, PESQ, and ESTOI
     INFO1 = []
+    sisnr_score_total = 0
+    pesq_score_total = 0
+    estoi_score_total = 0
     # INFO = pd.read_csv(os.path.join(cfg_yaml.path.csv_folder, 'INFO.csv'))
     for step, (mixture, ref, target) in enumerate(tqdm(validation_dataloader)):
             
@@ -72,20 +76,37 @@ def infer(cfg_yaml):
         sisnr_score = sisnr(out, clean)
         pesq_score = pesq(16000, clean, out, 'wb')
         estoi_score = stoi(clean, out, 16000, extended=True)
+        sisnr_score_total += sisnr_score
+        pesq_score_total += pesq_score
+        estoi_score_total += estoi_score
 
+        save_name = ""
         ## save wavs
         if save_wavs == 'y':
-            save_name = "{}_{}_{:.2f}_{:.2f}_{:.2f}.wav".format(validation_filename[0][step], mark, sisnr_score, pesq_score, estoi_score)
+            # save_name = "{}_{}_{:.2f}_{:.2f}_{:.2f}.wav".format(validation_filename[0][step], mark, sisnr_score, pesq_score, estoi_score)
+            file_name = validation_filename[0][step].split('/')
+            last_name = file_name[-1]
+            last_name = last_name.split('_')[2:]
+            last_name = '_'.join(last_name)
+            save_name = "{}".format(last_name)
         
             sf.write(
                 os.path.join(netout_folder, save_name), out, cfg_toml['listener']['listener_sr'])
         
-        ## save infos
+        # save infos
         file_name = validation_filename[0][step]
-        INFO1.append([file_name, sisnr_score, pesq_score,  estoi_score])
+        INFO1.append([os.path.join(netout_folder, save_name), sisnr_score, pesq_score,  estoi_score])
     
-    INFO1 = pd.DataFrame(INFO1, columns=['file_name', 'sisnr', 'pesq', 'estoi'])
+    INFO1.insert(0, ['total', sisnr_score_total / len(validation_dataloader), pesq_score_total / len(validation_dataloader),  estoi_score_total / len(validation_dataloader)])
+    INFO1 = pd.DataFrame(INFO1, columns=[cfg_yaml.network.cpt_name, 'sisnr', 'pesq', 'estoi'])
     INFO1.to_csv(os.path.join(cfg_yaml.path.csv_folder, 'INFO.csv'), index=None)
+
+    # 创建 DataFrame
+    data = {
+        'SISNR_Score': [sisnr_score_total / len(validation_dataloader)],
+        'PESQ_Score': [pesq_score_total / len(validation_dataloader)],
+        'ESTOI_Score': [estoi_score_total / len(validation_dataloader)]
+    }
 
     # ### compute DNSMOS
     # os.chdir('DNSMOS')
