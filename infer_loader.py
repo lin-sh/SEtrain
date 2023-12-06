@@ -12,7 +12,7 @@ from score_utils import sisnr
 from omegaconf import OmegaConf
 from datasets import MyDataset
 from deepvqe_v1 import DeepVQE
-
+from AECMOS_local.aecmos import AECMOSEstimator
 
 @torch.no_grad()
 def infer(cfg_yaml):
@@ -55,6 +55,9 @@ def infer(cfg_yaml):
     sisnr_score_total = 0
     pesq_score_total = 0
     estoi_score_total = 0
+    scores0 = 0
+    scores1 = 0
+    aecmos = AECMOSEstimator()
     # INFO = pd.read_csv(os.path.join(cfg_yaml.path.csv_folder, 'INFO.csv'))
     for step, (mixture, ref, target) in enumerate(tqdm(validation_dataloader)):
             
@@ -93,20 +96,27 @@ def infer(cfg_yaml):
             sf.write(
                 os.path.join(netout_folder, save_name), out, cfg_toml['listener']['listener_sr'])
         
+        mixture = torch.istft(mixture[..., 0] + 1j*mixture[..., 1], **cfg_toml['FFT'], window=torch.hann_window(cfg_toml['FFT']['win_length']).pow(0.5).to(device))
+        ref = torch.istft(ref[..., 0] + 1j*ref[..., 1], **cfg_toml['FFT'], window=torch.hann_window(cfg_toml['FFT']['win_length']).pow(0.5).to(device))
+        mixture = mixture.cpu().detach().numpy().squeeze()
+        ref = ref.cpu().detach().numpy().squeeze()
+        min_len = min(len(mixture), len(ref), len(out))
+        mixture = mixture[:min_len]
+        ref = ref[:min_len]
+        out = out[:min_len]
+        scores = aecmos.run('dt', ref, mixture, out)
+        scores0 += scores[0]
+        scores1 += scores[1]
+
         # save infos
-        file_name = validation_filename[0][step]
+        file_name = validation_filename[0][step]       
         INFO1.append([os.path.join(netout_folder, save_name), sisnr_score, pesq_score,  estoi_score])
     
     INFO1.insert(0, ['total', sisnr_score_total / len(validation_dataloader), pesq_score_total / len(validation_dataloader),  estoi_score_total / len(validation_dataloader)])
+    INFO1.insert(1, ['AECMOS', scores0 / len(validation_dataloader), 'other',  scores1 / len(validation_dataloader)])
     INFO1 = pd.DataFrame(INFO1, columns=[cfg_yaml.network.cpt_name, 'sisnr', 'pesq', 'estoi'])
     INFO1.to_csv(os.path.join(cfg_yaml.path.csv_folder, 'INFO.csv'), index=None)
 
-    # 创建 DataFrame
-    data = {
-        'SISNR_Score': [sisnr_score_total / len(validation_dataloader)],
-        'PESQ_Score': [pesq_score_total / len(validation_dataloader)],
-        'ESTOI_Score': [estoi_score_total / len(validation_dataloader)]
-    }
 
     # ### compute DNSMOS
     # os.chdir('DNSMOS')
