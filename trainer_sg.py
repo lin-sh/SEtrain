@@ -195,7 +195,7 @@ class Trainer:
             self.validation_dataloader.desc = 'validate[{}/{}][{}]'.format(
                 epoch, self.epochs + self.start_epoch-1, datetime.now().strftime("%Y-%m-%d-%H:%M"))
 
-            self.validation_dataloader.postfix = 'valid_loss={:.3f}, pesq={:.4f}'.format(
+            self.validation_dataloader.postfix = 'valid_loss={:.3f}, aecmos={:.4f}'.format(
                 total_loss / step, total_pesq_score / step)
 
         self.writer.add_scalars(
