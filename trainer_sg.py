@@ -22,7 +22,7 @@ class Trainer:
         self.model = model
         self.loss_type = loss_type
         self.optimizer = optimizer
-        self.aecmos = AECMOSEstimator(config['validation_dataset']['aecmos'])
+        self.aecmos = AECMOSEstimator(config['aecmos']['aecmos'])
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             self.optimizer, 'min', factor=0.5, patience=5,verbose=True)
         self.loss_func = loss_func

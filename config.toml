@@ -36,6 +36,8 @@ train_folder = '/root/aec/AEC-Challenge2022/datasets/synthetic/val_set.csv'
 shuffle = true
 num_tot = 0
 wav_len = 0
+
+[aecmos]
 aecmos = '/home/aec/SEtrain-main/AECMOS_local/Run_1663829550_Stage_0.onnx'
 
 

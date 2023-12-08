@@ -61,18 +61,25 @@ class AlignBlock(nn.Module):
 
 
 class EncoderBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=(4,3), stride=(1,2), is_last=False):
+    def __init__(self, in_channels, out_channels, kernel_size=(4,3), stride=(1,2)):
         super().__init__()
         self.pad = nn.ZeroPad2d([1,1,3,0])
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride)
         self.bn = nn.BatchNorm2d(out_channels)
         self.elu = nn.ELU()
         self.resblock = ResidualBlock(out_channels)
-        self.is_last = is_last
     def forward(self, x):
-        if self.is_last:
-            return self.elu(self.bn(self.conv(self.pad(x))))
         return self.resblock(self.elu(self.bn(self.conv(self.pad(x)))))
+
+class EncoderBlockLast(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=(4,3), stride=(1,2)):
+        super().__init__()
+        self.pad = nn.ZeroPad2d([1,1,3,0])
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.elu = nn.ELU()
+    def forward(self, x):
+        return self.elu(self.bn(self.conv(self.pad(x))))
 
 
 class Bottleneck(nn.Module):
@@ -156,10 +163,10 @@ class DeepVQE(nn.Module):
 
 
 
-        self.enblock1 = EncoderBlock(2, 16, is_last=True)
+        self.enblock1 = EncoderBlockLast(2, 16)
         self.enblock2 = EncoderBlock(16, 24)
         self.enblock3 = EncoderBlock(48, 56)
-        self.enblock4 = EncoderBlock(56, 24, is_last=True)
+        self.enblock4 = EncoderBlockLast(56, 24)
 
         
         self.bottle = Bottleneck(24*17, 12*17)
