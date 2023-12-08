@@ -16,6 +16,7 @@ if torch.cuda.is_available():
         print(f"GPU {i}: {torch.cuda.get_device_name(i)}")
 else:
     print("No GPU available.")
+
 import toml
 import argparse
 import torch.distributed as dist

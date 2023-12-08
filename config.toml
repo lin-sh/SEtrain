@@ -1,6 +1,6 @@
 [network_config]
 node = 'LSH'
-des = '对比学习损失'
+des = 'deeqvqe-s'
 
 [DDP]
 world_size = 2   # number of available gpus
@@ -9,7 +9,7 @@ world_size = 2   # number of available gpus
 lr = 1e-3
 
 [loss]
-loss_func = 'hybrid_CR'
+loss_func = 'hybrid'
 
 [listener]
 listener_sr = 16000

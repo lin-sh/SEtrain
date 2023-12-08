@@ -2,7 +2,7 @@
 single GPU version.
 """
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="3"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 import toml
 import torch
 # 检查是否有可用的 GPU
