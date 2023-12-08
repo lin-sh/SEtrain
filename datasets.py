@@ -15,7 +15,7 @@ class MyDataset(data.Dataset):
         
         if shuffle:
           random.seed(7)
-          random.shuffle(self.file_name)
+          self.file_name = self.file_name.sample(frac=1).reset_index(drop=True)
         
         if num_tot != 0:
           self.file_name = self.file_name[: num_tot]

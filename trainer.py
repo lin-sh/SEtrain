@@ -107,6 +107,17 @@ class Trainer:
 
 
     def _resume_checkpoint(self):
+        best_checkpoint = os.path.join(self.checkpoint_path, 'best_model.tar')
+        map_location = self.device
+        checkpoint = torch.load(latest_checkpoints, map_location=map_location)
+
+        self.state_dict_best = {'epoch': checkpoint['epoch'],
+                      'optimizer': checkpoint['optimizer'],
+                      'model': checkpoint['model'],
+                      'score': checkpoint['score']}.copy()
+        self.best_score = checkpoint['score']
+
+
         latest_checkpoints = sorted(glob(os.path.join(self.checkpoint_path, 'model_*.tar')))[-1]
 
         map_location = self.device
@@ -230,6 +241,8 @@ class Trainer:
 
             if (self.rank == 0) and (epoch % self.save_checkpoint_interval == 0):
                 self._save_checkpoint(epoch, score)
+                if self.early_stopping.early_stop:
+                    break
 
         if self.rank == 0:
             torch.save(self.state_dict_best,

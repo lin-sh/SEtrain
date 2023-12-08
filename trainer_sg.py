@@ -85,11 +85,12 @@ class Trainer:
     def _save_checkpoint(self, epoch, score):
         state_dict = {'epoch': epoch,
                       'optimizer': self.optimizer.state_dict(),
-                      'model': self.model.state_dict()}
+                      'model': self.model.state_dict(),
+                      'score': score}
 
         torch.save(state_dict, os.path.join(self.checkpoint_path, f'model_{str(epoch).zfill(4)}.tar'))
         if not self.early_stopping.early_stop:
-            self.early_stopping(score, self.model, epoch)
+            self.early_stopping(score, state_dict, epoch)
         if score > self.best_score:
             self.state_dict_best = state_dict.copy()
             self.best_score = score
@@ -98,14 +99,26 @@ class Trainer:
                 'best_model.tar'))  
 
     def _resume_checkpoint(self):
-        latest_checkpoints = sorted(glob(os.path.join(self.checkpoint_path, 'model_*.tar')))[-1]
+        best_checkpoint = os.path.join(self.checkpoint_path, 'best_model.tar')
+        map_location = self.device
+        checkpoint = torch.load(latest_checkpoints, map_location=map_location)
 
+        self.state_dict_best = {'epoch': checkpoint['epoch'],
+                      'optimizer': checkpoint['optimizer'],
+                      'model': checkpoint['model'],
+                      'score': checkpoint['score']}.copy()
+        self.best_score = checkpoint['score']
+
+
+        latest_checkpoints = sorted(glob(os.path.join(self.checkpoint_path, 'model_*.tar')))[-1]
         map_location = self.device
         checkpoint = torch.load(latest_checkpoints, map_location=map_location)
 
         self.start_epoch = checkpoint['epoch'] + 1
         self.optimizer.load_state_dict(checkpoint['optimizer'])
         self.model.load_state_dict(checkpoint['model'])
+
+    
 
     def _train_epoch(self, epoch):
         total_loss = 0
@@ -207,7 +220,8 @@ class Trainer:
 
             if epoch % self.save_checkpoint_interval == 0:
                 self._save_checkpoint(epoch, pesq_score)
-
+                if self.early_stopping.early_stop:
+                    break
         torch.save(self.state_dict_best,
                 os.path.join(self.checkpoint_path,
                 'best_model_{}.tar'.format(str(self.state_dict_best['epoch']).zfill(4))))    
@@ -216,5 +230,5 @@ class Trainer:
 
         with open(timestamp_txt, 'a') as f:
             f.write('[{}] end\n'.format(datetime.now().strftime("%Y-%m-%d-%H:%M")))
-        send_email("node02_linshanghui_Gw4eub", "您的模型已经成功训练完成！")
+        send_email(self.config['network_config']['node'] + " " + self.config['network_config']['des'], "您的模型已经成功训练完成！")
         

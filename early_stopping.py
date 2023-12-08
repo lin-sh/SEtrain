@@ -4,7 +4,7 @@ import os
 
 class EarlyStopping:
     """Early stops the training if validation loss doesn't improve after a given patience."""
-    def __init__(self, save_path, patience=7, verbose=False, delta=0):
+    def __init__(self, save_path, patience=10, verbose=False, delta=0):
         """
         Args:
             save_path : 模型保存文件夹
@@ -25,14 +25,14 @@ class EarlyStopping:
         self.delta = delta
         self.epoch = 1
 
-    def __call__(self, val_loss, model, epoch):
+    def __call__(self, val_loss, state_dict, epoch):
 
-        score = -val_loss
+        score = val_loss
         if self.best_score is None:
             self.best_score = score
             self.epoch = epoch
-            self.save_checkpoint(val_loss, model)
-        elif score < self.best_score + self.delta:
+            self.save_checkpoint(val_loss, state_dict)
+        elif score > self.best_score + self.delta:
             self.counter += 1
             # print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
             if self.counter >= self.patience:
@@ -41,13 +41,13 @@ class EarlyStopping:
             self.best_score = score
             os.remove(os.path.join(self.save_path, f'early_stopping_model_{str(self.epoch).zfill(4)}.tar'))
             self.epoch = epoch
-            self.save_checkpoint(val_loss, model)
+            self.save_checkpoint(val_loss, state_dict)
             self.counter = 0
 
-    def save_checkpoint(self, val_loss, model):
+    def save_checkpoint(self, val_loss, state_dict):
         '''Saves model when validation loss decrease.'''
         # if self.verbose:
             # print(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
-        torch.save(model.state_dict(), os.path.join(self.save_path, f'early_stopping_model_{str(self.epoch).zfill(4)}.tar'))# 这里会存储迄今最优模型的参数
+        torch.save(state_dict, os.path.join(self.save_path, f'early_stopping_model_{str(self.epoch).zfill(4)}.tar'))# 这里会存储迄今最优模型的参数
         self.val_loss_min = val_loss
 

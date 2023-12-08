@@ -8,20 +8,6 @@ import torch
 if torch.cuda.is_available():
     # 获取 GPU 数量
     num_gpus = torch.cuda.device_count()
-    print(f"Number of available GPUs: {num_gpus}")
-import toml
-import argparse
-import torch.distributed as dist
-
-from trainer import Trainer
-from deepvqe_v1 import DeepVQE
-from datasets import MyDataset
-from loss_factory import loss_wavmag, loss_mse, loss_hybrid, loss_hybrid_CR
-
-# 检查是否有可用的 GPU
-if torch.cuda.is_available():
-    # 获取 GPU 数量
-    num_gpus = torch.cuda.device_count()
 
     print(f"Number of available GPUs: {num_gpus}")
 
@@ -30,6 +16,15 @@ if torch.cuda.is_available():
         print(f"GPU {i}: {torch.cuda.get_device_name(i)}")
 else:
     print("No GPU available.")
+import argparse
+import torch.distributed as dist
+
+from trainer import Trainer
+from deepvqe_v1 import DeepVQE
+from datasets import MyDataset
+from loss_factory import loss_wavmag, loss_mse, loss_hybrid, loss_hybrid_CR
+
+
 
 seed = 0
 torch.manual_seed(seed)
@@ -38,7 +33,7 @@ torch.cuda.manual_seed_all(seed)
 
 def run(rank, config, args):
     os.environ['MASTER_ADDR'] = '127.0.0.1'
-    os.environ['MASTER_PORT'] = '12359'
+    os.environ['MASTER_PORT'] = '15432'
     dist.init_process_group("nccl", rank=rank, world_size=args.world_size)
     torch.cuda.set_device(rank)
     dist.barrier()

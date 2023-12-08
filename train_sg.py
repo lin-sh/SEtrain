@@ -30,10 +30,10 @@ torch.cuda.manual_seed(seed)
 def run(config, device):
 
     train_dataset = MyDataset(**config['train_dataset'])
-    train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset, **config['train_dataloader'])
+    train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset, shuffle = True, **config['train_dataloader'])
     
     validation_dataset = MyDataset(**config['validation_dataset'])
-    validation_dataloader = torch.utils.data.DataLoader(dataset=validation_dataset, **config['validation_dataloader'])
+    validation_dataloader = torch.utils.data.DataLoader(dataset=validation_dataset, shuffle = True, **config['validation_dataloader'])
 
     # model = DPCRN(**config['network_config'])
     model = DeepVQE()
