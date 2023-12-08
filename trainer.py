@@ -96,7 +96,7 @@ class Trainer:
 
         torch.save(state_dict, os.path.join(self.checkpoint_path, f'model_{str(epoch).zfill(4)}.tar'))
         if not self.early_stopping.early_stop:
-            self.early_stopping(score, self.model, epoch)
+            self.early_stopping(score, state_dict, epoch)
         
         if score > self.best_score:
             self.best_score = score
@@ -253,5 +253,6 @@ class Trainer:
 
             with open(timestamp_txt, 'a') as f:
                 f.write('[{}] end\n'.format(datetime.now().strftime("%Y-%m-%d-%H:%M")))
-            send_email("node02_linshanghui_Gw4eub", "您的模型已经成功训练完成！")
+            send_email(self.config['network_config']['node'] + " " + self.config['network_config']['des'], "您的模型已经成功训练完成！")
+
         
