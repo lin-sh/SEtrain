@@ -1,6 +1,6 @@
 [network_config]
 node = 'LSH'
-des = 'deeqvqe-s'
+des = 'deeqcm'
 
 [DDP]
 world_size = 2   # number of available gpus
@@ -26,7 +26,7 @@ num_tot = 0
 wav_len = 0
 
 [train_dataloader]
-batch_size = 1
+batch_size = 4
 num_workers = 0
 drop_last = true
 pin_memory = true
@@ -38,7 +38,7 @@ num_tot = 0
 wav_len = 0
 
 [aecmos]
-aecmos = '/home/aec/SEtrain-main/AECMOS_local/Run_1663829550_Stage_0.onnx'
+aecmos = '/root/aec/SEtrain/AECMOS_local/Run_1663829550_Stage_0.onnx'
 
 
 [validation_dataloader]

@@ -11,7 +11,7 @@ import soundfile as sf
 from torch.utils.tensorboard import SummaryWriter
 from pesq import pesq
 from distributed_utils import reduce_value
-from early_stopping import EarlyStopping
+# from early_stopping import EarlyStopping
 from send import send_email
 from AECMOS_local.aecmos import AECMOSEstimator
 
@@ -52,13 +52,10 @@ class Trainer:
         self.checkpoint_path = os.path.join(self.exp_path, 'checkpoints')
         self.best_path = os.path.join(self.exp_path, 'best')
         self.sample_path = os.path.join(self.exp_path, 'val_samples')
-        self.early_stopping_path = os.path.join(self.exp_path, 'early_stopping')
-        self.early_stopping = EarlyStopping(self.early_stopping_path)
 
         os.makedirs(self.log_path, exist_ok=True)
         os.makedirs(self.checkpoint_path, exist_ok=True)
         os.makedirs(self.sample_path, exist_ok=True)
-        os.makedirs(self.early_stopping_path, exist_ok=True)
 
         ## save the config
         if self.rank == 0:
@@ -96,8 +93,6 @@ class Trainer:
                       'model': self.model.module.state_dict()}
 
         torch.save(state_dict, os.path.join(self.checkpoint_path, f'model_{str(epoch).zfill(4)}.tar'))
-        if not self.early_stopping.early_stop:
-            self.early_stopping(score, state_dict, epoch)
         
         if score > self.best_score:
             self.best_score = score
@@ -248,8 +243,6 @@ class Trainer:
 
             if (self.rank == 0) and (epoch % self.save_checkpoint_interval == 0):
                 self._save_checkpoint(epoch, score)
-                if self.early_stopping.early_stop:
-                    break
 
         if self.rank == 0:
             torch.save(self.state_dict_best,

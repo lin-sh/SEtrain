@@ -22,7 +22,7 @@ import argparse
 import torch.distributed as dist
 
 from trainer import Trainer
-from deepvqe_v1 import DeepVQE
+from CMc import DeepCM
 from datasets import MyDataset
 from loss_factory import loss_wavmag, loss_mse, loss_hybrid, loss_hybrid_CR
 
@@ -54,7 +54,7 @@ def run(rank, config, args):
                                                         **config['validation_dataloader'])
 
     # model = DPCRN(**config['network_config'])
-    model = DeepVQE()
+    model = DeepCM()
     model.to(args.device)
 
     # convert to DDP model
