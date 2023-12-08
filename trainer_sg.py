@@ -12,6 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 from pesq import pesq
 from early_stopping import EarlyStopping
 from send import send_email
+from AECMOS_local.aecmos import AECMOSEstimator
 
 
 class Trainer:
@@ -27,7 +28,7 @@ class Trainer:
 
         self.train_dataloader = train_dataloader
         self.validation_dataloader = validation_dataloader
-
+        self.aecmos = AECMOSEstimator()
         self.device = device
 
         ## training config
@@ -170,11 +171,17 @@ class Trainer:
 
             enhanced = torch.istft(esti_tagt[..., 0] + 1j*esti_tagt[..., 1], **self.config['FFT'], window = torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
             clean = torch.istft(target[..., 0] + 1j*target[..., 1], **self.config['FFT'], window = torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
+            mixture = torch.istft(mixture[..., 0] + 1j*mixture[..., 1], **self.config['FFT'], window = torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
+            ref = torch.istft(ref[..., 0] + 1j*ref[..., 1], **self.config['FFT'], window = torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
+
 
             enhanced = enhanced.squeeze().cpu().numpy()
             clean = clean.squeeze().cpu().numpy()
+            mixture = mixture.squeeze().cpu().numpy()
+            ref = ref.squeeze().cpu().numpy()
 
-            pesq_score = pesq(16000, clean, enhanced, 'wb')
+            pesq_score = self.aecmos.run('dt', ref, mixture, enhanced)[0]
+            # pesq_score = pesq(16000, clean, enhanced, 'wb')
             total_pesq_score += pesq_score
 
             if step <= 3:

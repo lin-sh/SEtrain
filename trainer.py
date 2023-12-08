@@ -13,6 +13,7 @@ from pesq import pesq
 from distributed_utils import reduce_value
 from early_stopping import EarlyStopping
 from send import send_email
+from AECMOS_local.aecmos import AECMOSEstimator
 
 class Trainer:
     def __init__(self, config, model, optimizer, loss_func,
@@ -21,7 +22,7 @@ class Trainer:
         self.model = model
         self.loss_type = loss_type
         self.optimizer = optimizer
-        
+        self.aecmos = AECMOSEstimator()
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             self.optimizer, 'min', factor=0.5, patience=5,verbose=True)
                 
@@ -109,7 +110,7 @@ class Trainer:
     def _resume_checkpoint(self):
         best_checkpoint = os.path.join(self.checkpoint_path, 'best_model.tar')
         map_location = self.device
-        checkpoint = torch.load(latest_checkpoints, map_location=map_location)
+        checkpoint = torch.load(best_checkpoint, map_location=map_location)
 
         self.state_dict_best = {'epoch': checkpoint['epoch'],
                       'optimizer': checkpoint['optimizer'],
@@ -183,12 +184,18 @@ class Trainer:
 
             enhanced = torch.istft(esti_tagt[..., 0] + 1j*esti_tagt[..., 1], **self.config['FFT'], window = torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
             clean = torch.istft(target[..., 0] + 1j*target[..., 1], **self.config['FFT'], window = torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
+            mixture = torch.istft(mixture[..., 0] + 1j*mixture[..., 1], **self.config['FFT'], window = torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
+            ref = torch.istft(ref[..., 0] + 1j*ref[..., 1], **self.config['FFT'], window = torch.hann_window(self.config['FFT']['win_length']).pow(0.5).to(self.device))
 
             enhanced = enhanced.squeeze().cpu().numpy()
             clean = clean.squeeze().cpu().numpy()
+            mixture = mixture.squeeze().cpu().numpy()
+            ref = ref.squeeze().cpu().numpy()
 
-            pesq_score = pesq(16000, clean, enhanced, 'wb')
-            pesq_score = reduce_value(torch.tensor(pesq_score, device=self.device))
+            scores = self.aecmos.run('dt', ref, mixture, enhanced)[0]
+
+            # pesq_score = pesq(16000, clean, enhanced, 'wb')
+            pesq_score = reduce_value(torch.tensor(scores, device=self.device))
             total_pesq_score += pesq_score
             
             if step <= 3:

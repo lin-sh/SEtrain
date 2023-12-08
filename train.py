@@ -2,7 +2,7 @@
 multiple GPUs version, using DDP training.
 """
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="1,2,3,4,5"
+os.environ["CUDA_VISIBLE_DEVICES"]="2,3"
 import torch
 # 检查是否有可用的 GPU
 if torch.cuda.is_available():
@@ -16,6 +16,7 @@ if torch.cuda.is_available():
         print(f"GPU {i}: {torch.cuda.get_device_name(i)}")
 else:
     print("No GPU available.")
+import toml
 import argparse
 import torch.distributed as dist
 
