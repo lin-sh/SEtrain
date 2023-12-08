@@ -5,9 +5,9 @@ from email.mime.multipart import MIMEMultipart
 
 def send_email(subject, body):
     # 邮件配置
-    sender_email = ""  # 发送者邮箱
-    receiver_email = ""  # 接收者邮箱
-    password = ""  # 发送者邮箱密码
+    sender_email = "v"  # 发送者邮箱
+    receiver_email = "v"  # 接收者邮箱
+    password = "v"  # 发送者邮箱密码
     smtp_server = "smtp.126.com"  # 126 邮箱 SMTP 服务器
     smtp_port = 25  # 一般情况下使用 25 端口
 

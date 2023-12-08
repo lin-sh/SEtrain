@@ -1,9 +1,9 @@
 [network_config]
 node = 'LSH'
-des = '原版deepvqe'
+des = '对比学习损失'
 
 [DDP]
-world_size = 5   # number of available gpus
+world_size = 2   # number of available gpus
 
 [optimizer]
 lr = 1e-3
@@ -20,13 +20,8 @@ hop_length = 256
 win_length = 512
 
 [train_dataset]
-<<<<<<< Updated upstream
-train_folder = '/home/aec/AEC-Challenge/datasets/synthetic/train_set.csv'
-shuffle = false
-=======
 train_folder = '/root/aec/AEC-Challenge2022/datasets/synthetic/train_set.csv'
 shuffle = true
->>>>>>> Stashed changes
 num_tot = 0
 wav_len = 0
 
@@ -37,13 +32,8 @@ drop_last = true
 pin_memory = true
 
 [validation_dataset]
-<<<<<<< Updated upstream
-train_folder = '/home/aec/AEC-Challenge/datasets/synthetic/val_set.csv'
-shuffle = false
-=======
 train_folder = '/root/aec/AEC-Challenge2022/datasets/synthetic/val_set.csv'
 shuffle = true
->>>>>>> Stashed changes
 num_tot = 0
 wav_len = 0
 
@@ -58,10 +48,5 @@ save_checkpoint_interval = 1
 clip_grad_norm_value = 3.0
 exp_path = '/home/aec/SEtrain/exp/exp'
 resume = true
-<<<<<<< Updated upstream
-resume_datetime = '2023-12-01-10h58m'
-resume_step = 57
-=======
 resume_datetime = '2023-12-06-21h55m'
 resume_step = 15
->>>>>>> Stashed changes
