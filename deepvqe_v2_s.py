@@ -2,8 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from einops import rearrange
-import os
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+
 
 class FE(nn.Module):
     """Feature extraction"""
@@ -62,14 +61,17 @@ class AlignBlock(nn.Module):
 
 
 class EncoderBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=(4,3), stride=(1,2)):
+    def __init__(self, in_channels, out_channels, kernel_size=(4,3), stride=(1,2), is_last=False):
         super().__init__()
         self.pad = nn.ZeroPad2d([1,1,3,0])
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride)
         self.bn = nn.BatchNorm2d(out_channels)
         self.elu = nn.ELU()
         self.resblock = ResidualBlock(out_channels)
+        self.is_last = is_last
     def forward(self, x):
+        if self.is_last:
+            return self.elu(self.bn(self.conv(self.pad(x))))
         return self.resblock(self.elu(self.bn(self.conv(self.pad(x)))))
 
 
@@ -104,14 +106,13 @@ class DecoderBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=(4,3), is_last=False):
         super().__init__()
         self.skip_conv = nn.Conv2d(in_channels, in_channels, 1)
-        self.resblock = ResidualBlock(in_channels)
         self.deconv = SubpixelConv2d(in_channels, out_channels, kernel_size)
         self.bn = nn.BatchNorm2d(out_channels)
         self.elu = nn.ELU()
         self.is_last = is_last
     def forward(self, x, x_en):
         y = x + self.skip_conv(x_en)
-        y = self.deconv(self.resblock(y))
+        y = self.deconv(y)
         if not self.is_last:
             y = self.elu(self.bn(y))
         return y
@@ -149,51 +150,49 @@ class DeepVQE(nn.Module):
         self.fe = FE()
 
 
-        self.align = AlignBlock(128, 128)
-        self.enblockRef1 = EncoderBlock(2, 32)
-        self.enblockRef2 = EncoderBlock(32, 128)
+        self.align = AlignBlock(24, 24)
+        self.enblockRef1 = EncoderBlock(2, 8)
+        self.enblockRef2 = EncoderBlock(8, 24)
 
 
-        self.enblock1 = EncoderBlock(2, 64)
-        self.enblock2 = EncoderBlock(64, 128)
-        self.enblock3 = EncoderBlock(256, 128)
-        self.enblock4 = EncoderBlock(128, 128)
-        self.enblock5 = EncoderBlock(128, 128)
+
+        self.enblock1 = EncoderBlock(2, 16, is_last=True)
+        self.enblock2 = EncoderBlock(16, 24)
+        self.enblock3 = EncoderBlock(48, 56)
+        self.enblock4 = EncoderBlock(56, 24, is_last=True)
+
         
-        self.bottle = Bottleneck(128*9, 64*9)
+        self.bottle = Bottleneck(24*17, 12*17)
         
-        self.deblock5 = DecoderBlock(128, 128)
-        self.deblock4 = DecoderBlock(128, 128)
-        self.deblock3 = DecoderBlock(128, 128)
-        self.deblock2 = DecoderBlock(128, 64)
-        self.deblock1 = DecoderBlock(64, 27)
+        self.deblock4 = DecoderBlock(24, 40)
+        self.deblock3 = DecoderBlock(40, 32)
+        self.deblock2 = DecoderBlock(24, 32)
+        self.deblock1 = DecoderBlock(16, 27)
         self.ccm = CCM()
         
-    def forward(self, x):
-        en_y0 = self.fe(x)            
+    def forward(self, x, y):
+        en_y0 = self.fe(y)            
         en_y1 = self.enblockRef1(en_y0)  
-        en_y2 = self.enblockRef2(en_y1)  
+        en_y2 = self.enblockRef2(en_y1)
 
         """x: (B,F,T,2)"""
         en_x0 = self.fe(x)            # ; print(en_x0.shape)
         en_x1 = self.enblock1(en_x0)  # ; print(en_x1.shape)
         en_x2 = self.enblock2(en_x1)  # ; print(en_x2.shape)
-
+        
         en_xy0 = self.align(en_x2, en_y2)  # ; print(en_x2.shape)
         # concat en_xy0 and en_x2
         en_xy1 = torch.cat([en_x2, en_xy0], dim=1)
 
         en_x3 = self.enblock3(en_xy1)  # ; print(en_x3.shape)
-        en_x4 = self.enblock4(en_x3)  # ; print(en_x4.shape)
-        en_x5 = self.enblock5(en_x4)  # ; print(en_x5.shape)
+        en_x4 = self.enblock4(en_x3)  # ; print(en_x3.shape)
 
-        en_xr = self.bottle(en_x5)    # ; print(en_xr.shape)
+        en_xr = self.bottle(en_x4)    # ; print(en_xr.shape)
         
-        de_x5 = self.deblock5(en_xr, en_x5)[..., :en_x4.shape[-1]]  # ; print(de_x5.shape)
-        de_x4 = self.deblock4(de_x5, en_x4)[..., :en_x3.shape[-1]]  # ; print(de_x4.shape)
-        de_x3 = self.deblock3(de_x4, en_x3)[..., :en_x2.shape[-1]]  # ; print(de_x3.shape)
-        de_x2 = self.deblock2(de_x3, en_x2)[..., :en_x1.shape[-1]]  # ; print(de_x2.shape)
-        de_x1 = self.deblock1(de_x2, en_x1)[..., :en_x0.shape[-1]]  # ; print(de_x1.shape)
+        de_x4 = self.deblock4(en_xr, en_x4)[..., :en_x3.shape[-1]]  # ; print(de_x3.shape)
+        de_x3 = self.deblock3(de_x4, en_x3[:, :de_x4.shape[1], :, :])[..., :en_x2.shape[-1]]  # ; print(de_x3.shape)
+        de_x2 = self.deblock2(de_x3[:, :en_x2.shape[1], :, :], en_x2)[..., :en_x1.shape[-1]]  # ; print(de_x2.shape)
+        de_x1 = self.deblock1(de_x2[:, :en_x1.shape[1], :, :], en_x1)[..., :en_x0.shape[-1]]  # ; print(de_x1.shape)
         
         x_enh = self.ccm(de_x1, x)  # (B,F,T,2)
         
@@ -204,9 +203,8 @@ class DeepVQE(nn.Module):
 if __name__ == "__main__":
     model = DeepVQE().eval()
     x = torch.randn(1, 257, 63, 2)
-    x1 = torch.randn(1, 257, 63, 2)
-    y = model(x).cuda()
-    
+    # x1 = torch.randn(1, 257, 63, 2)
+    y = model(x)
 
     
     from ptflops import get_model_complexity_info

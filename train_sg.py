@@ -18,7 +18,7 @@ if torch.cuda.is_available():
 else:
     print("No GPU available.")
 from trainer_sg import Trainer
-from deepvqe_v1 import DeepVQE
+from deepvqe_v2_s import DeepVQE
 from datasets import MyDataset
 from loss_factory import loss_wavmag, loss_mse, loss_hybrid, loss_hybrid_CR 
 
