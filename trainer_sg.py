@@ -96,7 +96,7 @@ class Trainer:
     def _resume_checkpoint(self):
         best_checkpoint = os.path.join(self.checkpoint_path, 'best_model.tar')
         map_location = self.device
-        checkpoint = torch.load(latest_checkpoints, map_location=map_location)
+        checkpoint = torch.load(best_checkpoint, map_location=map_location)
 
         self.state_dict_best = {'epoch': checkpoint['epoch'],
                       'optimizer': checkpoint['optimizer'],

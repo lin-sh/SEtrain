@@ -90,7 +90,8 @@ class Trainer:
     def _save_checkpoint(self, epoch, score):
         state_dict = {'epoch': epoch,
                       'optimizer': self.optimizer.state_dict(),
-                      'model': self.model.module.state_dict()}
+                      'model': self.model.module.state_dict(),
+                      'score': score}
 
         torch.save(state_dict, os.path.join(self.checkpoint_path, f'model_{str(epoch).zfill(4)}.tar'))
         
