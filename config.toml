@@ -3,7 +3,7 @@ node = 'LSH'
 des = 'deeqcm'
 
 [DDP]
-world_size = 2   # number of available gpus
+world_size = 1   # number of available gpus
 
 [optimizer]
 lr = 1e-3
@@ -26,7 +26,7 @@ num_tot = 0
 wav_len = 0
 
 [train_dataloader]
-batch_size = 5
+batch_size = 10
 num_workers = 2
 drop_last = true
 pin_memory = true

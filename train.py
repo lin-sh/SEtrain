@@ -2,7 +2,7 @@
 multiple GPUs version, using DDP training.
 """
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="2,3"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 import torch
 # 检查是否有可用的 GPU
 if torch.cuda.is_available():
@@ -35,7 +35,7 @@ torch.cuda.manual_seed_all(seed)
 
 def run(rank, config, args):
     os.environ['MASTER_ADDR'] = '127.0.0.1'
-    os.environ['MASTER_PORT'] = '15432'
+    os.environ['MASTER_PORT'] = '15579'
     dist.init_process_group("nccl", rank=rank, world_size=args.world_size)
     torch.cuda.set_device(rank)
     dist.barrier()
@@ -89,6 +89,7 @@ if __name__ == '__main__':
 
     config = toml.load(args.config)
     args.world_size = config['DDP']['world_size']
+
     torch.multiprocessing.spawn(
         run, args=(config, args,), nprocs=args.world_size, join=True)
 
